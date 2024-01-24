@@ -1,3 +1,4 @@
+#include "parse.h"
 #include "lex.h"
 #include <assert.h>
 #include <stdint.h>
@@ -5,37 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef enum ast_type {
-  literal_t,
-  list_t,
-} ast_type;
-
-typedef enum literal_type {
-  integer_t,
-  floating_t,
-  string_t,
-  ident_t
-} literal_type;
-
-typedef union literal_value {
-  char *string;
-  char *ident;
-  int64_t integer;
-  double floating;
-} literal_value;
-
-typedef struct ast_node {
-  ast_type type;
-  struct ast_arr {
-    struct ast_node *child_ast;
-    int size;
-    int cap;
-  } child;
-  literal_type lit_t;
-  literal_value value;
-} ast_node;
-
-struct ast_node ast_node_init() {
+ast_node ast_node_init() {
   return (struct ast_node){
       .type = list_t,
       .child = (struct ast_arr){
@@ -59,6 +30,9 @@ void ast_print(ast_node node) {
       return;
     case floating_t:
       printf("%f", node.value.floating);
+      return;
+    case bool_t:
+      printf("%s", node.value.boolean ? "true" : "false");
       return;
     case string_t:
       printf("\"%s\"", node.value.string);
@@ -126,6 +100,10 @@ ast_node parse(token_arr tokens, int *index) {
       literal.lit_t = floating_t;
       literal.value.floating = atof(t.value);
       break;
+    case bool_type:
+      literal.lit_t = bool_t;
+      literal.value.boolean = !strncmp(t.value, "true", 4);
+      break;
     case string_type:
       literal.lit_t = string_t;
       literal.value.string = t.value;
@@ -145,16 +123,16 @@ ast_node parse(token_arr tokens, int *index) {
   return ast;
 }
 
-int main() {
-  string program = str_auto("(+ 5 5.5 (var a 5) \"hi mom\" ident)");
-  token_arr ta = lex(&program);
-  str_free(&program);
+/* int main() { */
+/*   string program = str_auto("(+ 5 5.5 (var a 5) \"hi mom\" ident)"); */
+/*   token_arr ta = lex(&program); */
+/*   str_free(&program); */
 
-  int cursor = 0;
-  ast_node ast = parse(ta, &cursor);
-  ast_print(ast);
-  printf("\n");
+/*   int cursor = 0; */
+/*   ast_node ast = parse(ta, &cursor); */
+/*   ast_print(ast); */
+/*   printf("\n"); */
 
-  ast_node_free(&ast);
-  ta_free(&ta);
-}
+/*   ast_node_free(&ast); */
+/*   ta_free(&ta); */
+/* } */

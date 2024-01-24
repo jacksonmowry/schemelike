@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-const char *token_str[] = {"Syntax", "Integer", "Floating Point", "String",
+const char *token_str[] = {"Syntax", "Integer", "Floating Point", "Boolean", "String",
                            "Identifier"};
 
 token *token_new(int pos, token_type type, char *value) {
@@ -72,6 +72,20 @@ token *lex_number(string *source, int *cursor) {
   }
 }
 
+token *lex_bool(string *source, int *cursor) {
+  int orig_cursor = *cursor;
+  char *s = &str_val(source)[*cursor];
+  if (!strncmp(s, "true", 4)) {
+    (*cursor) += 4;
+    return token_new(orig_cursor, bool_type, strdup("true"));
+  } else if (!strncmp(s, "false", 5)) {
+    (*cursor) += 5;
+    return token_new(orig_cursor, bool_type, strdup("false"));
+  }
+
+  return NULL;
+}
+
 token *lex_string(string *source, int *cursor) {
   char c = str_val(source)[*cursor];
   if (c != '"') {
@@ -100,7 +114,7 @@ token *lex_ident(string *source, int *cursor) {
   int orig_cursor = *cursor;
   while (*cursor < str_len(source)) {
     char c = str_val(source)[*cursor];
-    if (!(c == ' ' || c == ')')) {
+    if (!(c == ' ' || c == ')' || c == '\n' || c == '\t')) {
       (*cursor)++;
       continue;
     }
@@ -116,7 +130,7 @@ token *lex_ident(string *source, int *cursor) {
   return NULL;
 }
 
-token *(*lexer_array[])(string *, int *) = {lex_syntax, lex_number, lex_string,
+token *(*lexer_array[])(string *, int *) = {lex_syntax, lex_number, lex_bool, lex_string,
                                             lex_ident};
 
 int lexer_count = sizeof(lexer_array) / sizeof(uintptr_t);

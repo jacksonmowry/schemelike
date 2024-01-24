@@ -5,6 +5,7 @@ typedef enum token_type {
   syntax_type,
   integer_type,
   floating_type,
+  bool_type,
   string_type,
   ident_type,
 } token_type;
@@ -22,6 +23,7 @@ void eat_whitespace(string *, int *);
 
 token *lex_syntax(string *, int *);
 token *lex_number(string *, int *);
+token *lex_bool(string *, int *);
 token *lex_string(string *, int *);
 token *lex_ident(string *, int *);
 
