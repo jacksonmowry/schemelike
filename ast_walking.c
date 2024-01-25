@@ -4,54 +4,178 @@
 #include "parse.h"
 
 #include <assert.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-char *builtins[] = {"+", "-", "var", "begin", "<", "if", "func"};
+bool any_double(struct ast_arr ast, hashmap *ctx) {
+  for (int i = 0; i < ast.size; i++) {
+    ast_node a = auto_ast_walk(ast.child_ast[i], ctx);
+    if (a.lit_t == floating_t) {
+      return true;
+    }
+  }
+  return false;
+}
+
+double to_double(ast_node a) {
+  switch (a.lit_t) {
+  case integer_t:
+    return (double)a.value.integer;
+  case floating_t:
+    return a.value.floating;
+  default:
+    exit(69);
+  }
+}
+
+char *builtins[] = {"+",     "-", "*",  "/",    "var",     "const",
+                    "begin", "<", "if", "func", "average", "abs"};
 
 ast_node plus(struct ast_arr ast, hashmap *ctx) {
   assert(ast.child_ast[0].lit_t == ident_t);
   // Ignore the first node in arr as it is the ident '+'
-  int64_t accumulator = 0;
-  for (int i = 1; i < ast.size; i++) {
-    ast_node v = auto_ast_walk(ast.child_ast[i], ctx);
-    accumulator += v.value.integer;
+  if (auto_ast_walk(ast.child_ast[1], ctx).lit_t == integer_t) {
+    int64_t accumulator = 0;
+    for (int i = 1; i < ast.size; i++) {
+      ast_node v = auto_ast_walk(ast.child_ast[i], ctx);
+      accumulator += v.value.integer;
+    }
+    ast_node a = {
+        .type = literal_t, .lit_t = integer_t, .value.integer = accumulator};
+    return a;
+  } else if (auto_ast_walk(ast.child_ast[1], ctx).lit_t == floating_t) {
+    double accumulator = 0;
+    for (int i = 1; i < ast.size; i++) {
+      ast_node v = auto_ast_walk(ast.child_ast[i], ctx);
+      accumulator += v.value.floating;
+    }
+    ast_node a = {
+        .type = literal_t, .lit_t = floating_t, .value.floating = accumulator};
+    return a;
   }
-  ast_node a = {
-      .type = literal_t, .lit_t = integer_t, .value.integer = accumulator};
-  return a;
+  printf("unsupported operation for ");
+  ast_print(ast.child_ast[1]);
+  printf("\n");
+  exit(1);
 }
 
 ast_node minus(struct ast_arr ast, hashmap *ctx) {
-  puts("inside minus");
-  for (int i = 0; i < ast.size; i++) {
-    ast_print(ast.child_ast[i]);
-    puts("");
-  }
-  puts("done minus");
   assert(ast.child_ast[0].lit_t == ident_t);
-  // Ignore the first node in arr as it is the ident '+'
-  puts("getting a inside minus");
-  ast_print(get_ident(ctx, "a"));
-  puts("");
-  int64_t accumulator = auto_ast_walk(ast.child_ast[1], ctx).value.integer;
-  printf("starting accumulator %ld\n", accumulator);
-  for (int i = 2; i < ast.size; i++) {
-    ast_node v = auto_ast_walk(ast.child_ast[i], ctx);
-    accumulator -= v.value.integer;
+  // Ignore the first node in arr as it is the ident '-'
+  if (auto_ast_walk(ast.child_ast[1], ctx).lit_t == integer_t) {
+    int64_t accumulator = auto_ast_walk(ast.child_ast[1], ctx).value.integer;
+    for (int i = 2; i < ast.size; i++) {
+      ast_node v = auto_ast_walk(ast.child_ast[i], ctx);
+      accumulator -= v.value.integer;
+    }
+    ast_node a = {
+        .type = literal_t, .lit_t = integer_t, .value.integer = accumulator};
+    return a;
+  } else if (auto_ast_walk(ast.child_ast[1], ctx).lit_t == floating_t) {
+    double accumulator = auto_ast_walk(ast.child_ast[1], ctx).value.floating;
+    for (int i = 2; i < ast.size; i++) {
+      ast_node v = auto_ast_walk(ast.child_ast[i], ctx);
+      accumulator -= v.value.floating;
+    }
+    ast_node a = {
+        .type = literal_t, .lit_t = floating_t, .value.floating = accumulator};
+    return a;
   }
-  ast_node a = {
-      .type = literal_t, .lit_t = integer_t, .value.integer = accumulator};
-  printf("accumulator %ld\n", accumulator);
-  return a;
+
+  printf("unsupported operation for ");
+  ast_print(ast.child_ast[1]);
+  printf("\n");
+  exit(1);
+}
+
+ast_node mul(struct ast_arr ast, hashmap *ctx) {
+  assert(ast.child_ast[0].lit_t == ident_t);
+  // Ignore the first node in arr as it is the ident '*'
+  if (auto_ast_walk(ast.child_ast[1], ctx).lit_t == integer_t) {
+    int64_t accumulator = auto_ast_walk(ast.child_ast[1], ctx).value.integer;
+    for (int i = 2; i < ast.size; i++) {
+      ast_node v = auto_ast_walk(ast.child_ast[i], ctx);
+      accumulator *= v.value.integer;
+    }
+    ast_node a = {
+        .type = literal_t, .lit_t = integer_t, .value.integer = accumulator};
+    return a;
+  } else if (auto_ast_walk(ast.child_ast[1], ctx).lit_t == floating_t) {
+    double accumulator = auto_ast_walk(ast.child_ast[1], ctx).value.floating;
+    for (int i = 2; i < ast.size; i++) {
+      ast_node v = auto_ast_walk(ast.child_ast[i], ctx);
+      accumulator *= v.value.floating;
+    }
+    ast_node a = {
+        .type = literal_t, .lit_t = floating_t, .value.floating = accumulator};
+    return a;
+  }
+
+  printf("unsupported operation for ");
+  ast_print(ast.child_ast[1]);
+  printf("\n");
+  exit(1);
+}
+
+ast_node division(struct ast_arr ast, hashmap *ctx) {
+  assert(ast.child_ast[0].lit_t == ident_t);
+  // Ignore the first node in arr as it is the ident '/'
+  if (auto_ast_walk(ast.child_ast[1], ctx).lit_t == integer_t) {
+    int64_t accumulator = auto_ast_walk(ast.child_ast[1], ctx).value.integer;
+    for (int i = 2; i < ast.size; i++) {
+      ast_node v = auto_ast_walk(ast.child_ast[i], ctx);
+      accumulator /= v.value.integer;
+    }
+    ast_node a = {
+        .type = literal_t, .lit_t = integer_t, .value.integer = accumulator};
+    return a;
+  } else if (auto_ast_walk(ast.child_ast[1], ctx).lit_t == floating_t) {
+    double accumulator = auto_ast_walk(ast.child_ast[1], ctx).value.floating;
+    for (int i = 2; i < ast.size; i++) {
+      ast_node v = auto_ast_walk(ast.child_ast[i], ctx);
+      accumulator /= v.value.floating;
+    }
+    ast_node a = {
+        .type = literal_t, .lit_t = floating_t, .value.floating = accumulator};
+    return a;
+  }
+
+  printf("unsupported operation for ");
+  ast_print(ast.child_ast[1]);
+  printf("\n");
+  exit(1);
 }
 
 ast_node var(struct ast_arr ast, hashmap *ctx) {
   assert(ast.child_ast[0].lit_t == ident_t);
   assert(ast.child_ast[1].lit_t == ident_t);
   char *variable_name = ast.child_ast[1].value.ident;
+  // using 'hashmap_get' directly here so it doesn't throw
+  // and error if the key DNE
+  ast_node prev_value = hashmap_get(ctx, variable_name);
+  // Look up if var exists and is const
+  if (prev_value.type == const_t) {
+    fprintf(stderr, "Cannot reassign to const ident %s\n", variable_name);
+    exit(1);
+  }
   ast_node value = auto_ast_walk(ast.child_ast[2], ctx);
+  return bind_ident(ctx, variable_name, value);
+}
+
+ast_node _const(struct ast_arr ast, hashmap *ctx) {
+  assert(ast.child_ast[0].lit_t == ident_t);
+  assert(ast.child_ast[1].lit_t == ident_t);
+  char *variable_name = ast.child_ast[1].value.ident;
+  ast_node prev_value = hashmap_get(ctx, variable_name);
+  // Look up if var exists and is const
+  if (prev_value.type == const_t) {
+    fprintf(stderr, "Cannot reassign to const ident %s\n", variable_name);
+    exit(1);
+  }
+  ast_node value = auto_ast_walk(ast.child_ast[2], ctx);
+  value.type = const_t;
   return bind_ident(ctx, variable_name, value);
 }
 
@@ -68,16 +192,14 @@ ast_node lt(struct ast_arr ast, hashmap *ctx) {
   assert(ast.child_ast[0].lit_t == ident_t);
   ast_node left = auto_ast_walk(ast.child_ast[1], ctx);
   ast_node right = auto_ast_walk(ast.child_ast[2], ctx);
+  printf("left is %f\n", to_double(left));
+  printf("right is %f\n", to_double(right));
   ast_node n = {.type = literal_t, .lit_t = bool_t};
-  switch (left.lit_t) {
-  case integer_t:
+  struct ast_arr args = {.size = ast.size - 1, .child_ast = &ast.child_ast[1]};
+  if (any_double(args, ctx)) {
+    n.value.boolean = to_double(left) < to_double(right);
+  } else {
     n.value.boolean = left.value.integer < right.value.integer;
-    break;
-  case floating_t:
-    n.value.boolean = left.value.floating < right.value.floating;
-    break;
-  default:
-    assert("Unsupported type for less than" == false);
   }
 
   return n;
@@ -121,13 +243,47 @@ ast_node func(struct ast_arr ast, hashmap *ctx) {
   // The value.params is another ast of idents with the params
   // at runtime we will create a new context binding the arguments
   // to these params and executing the function through ast walking
-  puts("new function");
-  ast_print(new_func);
-  puts("");
   return bind_ident(ctx, ast.child_ast[1].value.ident, new_func);
 }
 
-builtin *builtin_arr[] = {plus, minus, var, begin, lt, if_expr, func};
+ast_node average(struct ast_arr ast, hashmap *ctx) {
+  assert(ast.child_ast[0].lit_t == ident_t);
+  double total = 0;
+  int count = 0;
+  for (; count < ast.size - 1; count++) {
+    ast_node val = auto_ast_walk(ast.child_ast[count + 1], ctx);
+    if (val.lit_t == integer_t) {
+      total += val.value.integer;
+    } else {
+      total += val.value.floating;
+    }
+  }
+
+  return (ast_node){
+      .type = literal_t, .lit_t = floating_t, .value.floating = total / count};
+}
+
+ast_node my_abs(struct ast_arr ast, hashmap *ctx) {
+  assert(ast.child_ast[0].lit_t == ident_t);
+  ast_node operand = auto_ast_walk(ast.child_ast[1], ctx);
+  if (operand.lit_t == integer_t) {
+    return (ast_node){.type = literal_t,
+                      .lit_t = integer_t,
+                      .value.integer = labs(operand.value.integer)};
+  } else if (operand.lit_t == floating_t) {
+    return (ast_node){.type = literal_t,
+                      .lit_t = floating_t,
+                      .value.integer = fabs(operand.value.floating)};
+  }
+
+  printf("unsuported operation on ");
+  ast_print(ast.child_ast[1]);
+  printf("\n");
+  exit(1);
+}
+
+builtin *builtin_arr[] = {plus,  minus, mul,     division, var,     _const,
+                          begin, lt,    if_expr, func,     average, my_abs};
 
 builtin *is_builtin(char *ident) {
   for (int i = 0; i < sizeof(builtins) / sizeof(char *); i++) {
@@ -173,20 +329,10 @@ ast_node ast_walk(ast_node ast, hashmap *ctx) {
    * 1); */
   for (int i = 0; i < children.size - 1; i++) {
     bind_ident(&child_ctx, user_func.value.params[i],
-               children.child_ast[i + 1]);
+               auto_ast_walk(children.child_ast[i + 1], ctx));
   }
 
   ast_node func_to_execute = {.type = list_t, .child = user_func.child};
-  puts("func to execute");
-  ast_print(func_to_execute);
-  puts("");
-  puts("value of a");
-  ast_print(get_ident(&child_ctx, "a"));
-  puts("");
-  puts("evaluated a");
-  auto_ast_walk(get_ident(&child_ctx, "a"), &child_ctx);
-  puts("");
-
   ast_node result = auto_ast_walk(func_to_execute, &child_ctx);
   hashmap_free(&child_ctx);
   return result;

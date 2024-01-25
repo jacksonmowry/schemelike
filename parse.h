@@ -8,6 +8,7 @@ typedef enum ast_type {
   list_t,
   tombstone_t,
   function_t,
+  const_t,
 } ast_type;
 
 typedef enum literal_type {

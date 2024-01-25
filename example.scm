@@ -1,2 +1,3 @@
-(begin (func fib (a) (if (< a 2) a (+ (fib (- a 1)) (fib (- a 2)))))
-       (fib 5))
+(begin
+  (func plus (a b) (+ a b))
+  (plus 6 9))
