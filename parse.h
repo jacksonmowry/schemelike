@@ -7,6 +7,7 @@ typedef enum ast_type {
   literal_t,
   list_t,
   tombstone_t,
+  function_t,
 } ast_type;
 
 typedef enum literal_type {
@@ -14,7 +15,8 @@ typedef enum literal_type {
   floating_t,
   bool_t,
   string_t,
-  ident_t
+  ident_t,
+  params_t,
 } literal_type;
 
 typedef union literal_value {
@@ -23,6 +25,7 @@ typedef union literal_value {
   int64_t integer;
   double floating;
   bool boolean;
+  char **params; // struct ast_node*
 } literal_value;
 
 typedef struct ast_node {
@@ -37,9 +40,9 @@ typedef struct ast_node {
 } ast_node;
 
 ast_node ast_node_int();
-void ast_node_free(ast_node*);
+void ast_node_free(ast_node *);
 void ast_print(ast_node);
-void ast_node_pb(ast_node*, ast_node);
-ast_node parse(token_arr, int*);
+void ast_node_pb(ast_node *, ast_node);
+ast_node parse(token_arr, int *);
 
 #endif // PARSE_H_

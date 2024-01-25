@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-char *builtins[] = {"+", "var", "begin", "<", "if"};
+char *builtins[] = {"+", "-", "var", "begin", "<", "if", "func"};
 
 ast_node plus(struct ast_arr ast, hashmap *ctx) {
   assert(ast.child_ast[0].lit_t == ident_t);
@@ -20,6 +20,30 @@ ast_node plus(struct ast_arr ast, hashmap *ctx) {
   }
   ast_node a = {
       .type = literal_t, .lit_t = integer_t, .value.integer = accumulator};
+  return a;
+}
+
+ast_node minus(struct ast_arr ast, hashmap *ctx) {
+  puts("inside minus");
+  for (int i = 0; i < ast.size; i++) {
+    ast_print(ast.child_ast[i]);
+    puts("");
+  }
+  puts("done minus");
+  assert(ast.child_ast[0].lit_t == ident_t);
+  // Ignore the first node in arr as it is the ident '+'
+  puts("getting a inside minus");
+  ast_print(get_ident(ctx, "a"));
+  puts("");
+  int64_t accumulator = auto_ast_walk(ast.child_ast[1], ctx).value.integer;
+  printf("starting accumulator %ld\n", accumulator);
+  for (int i = 2; i < ast.size; i++) {
+    ast_node v = auto_ast_walk(ast.child_ast[i], ctx);
+    accumulator -= v.value.integer;
+  }
+  ast_node a = {
+      .type = literal_t, .lit_t = integer_t, .value.integer = accumulator};
+  printf("accumulator %ld\n", accumulator);
   return a;
 }
 
@@ -77,7 +101,33 @@ ast_node if_expr(struct ast_arr ast, hashmap *ctx) {
   }
 }
 
-builtin *builtin_arr[] = {plus, var, begin, lt, if_expr};
+ast_node func(struct ast_arr ast, hashmap *ctx) {
+  // (func ident (a b) (+ a b))
+  //  0    1      2     3
+  assert(ast.child_ast[0].lit_t == ident_t);
+  assert(ast.child_ast[1].lit_t == ident_t);
+  assert(ast.child_ast[2].type == list_t);
+  char **params = calloc(ast.child_ast[2].child.size,
+                         sizeof(char **)); // this seg faults < 2
+  for (int i = 0; i < ast.child_ast[2].child.size; i++) {
+    params[i] = ast.child_ast[2].child.child_ast[i].value.ident;
+  }
+  ast_node new_func = {.type = function_t,
+                       .child = ast.child_ast[3].child,
+                       .lit_t = params_t,
+                       .value.params = params};
+  // This will make a node representing our function
+  // The child_ast is the actual body of the function to be executed
+  // The value.params is another ast of idents with the params
+  // at runtime we will create a new context binding the arguments
+  // to these params and executing the function through ast walking
+  puts("new function");
+  ast_print(new_func);
+  puts("");
+  return bind_ident(ctx, ast.child_ast[1].value.ident, new_func);
+}
+
+builtin *builtin_arr[] = {plus, minus, var, begin, lt, if_expr, func};
 
 builtin *is_builtin(char *ident) {
   for (int i = 0; i < sizeof(builtins) / sizeof(char *); i++) {
@@ -112,9 +162,36 @@ ast_node ast_walk(ast_node ast, hashmap *ctx) {
   if ((b = is_builtin(function_name)) != NULL) {
     return b(children, ctx);
   }
+  // Now we are looking for a user defined func
+  ast_node user_func = get_ident(ctx, function_name);
+  assert(user_func.type == function_t);
+  // We really need to copy the outer ctx, this prevents functions from calling
+  // other functions or even themselves
+  /* hashmap child_ctx = hashmap_init(fnv_string_hash, str_equals, 0.5, 0); */
+  hashmap child_ctx = hashmap_copy(ctx);
+  /* assert(((ast_node *)user_func.value.params)->child.size == children.size -
+   * 1); */
+  for (int i = 0; i < children.size - 1; i++) {
+    bind_ident(&child_ctx, user_func.value.params[i],
+               children.child_ast[i + 1]);
+  }
 
-  fprintf(stderr, "%d %s\n", children.child_ast[0].type, function_name);
-  assert("nothing but builtins implemented yet" == false);
+  ast_node func_to_execute = {.type = list_t, .child = user_func.child};
+  puts("func to execute");
+  ast_print(func_to_execute);
+  puts("");
+  puts("value of a");
+  ast_print(get_ident(&child_ctx, "a"));
+  puts("");
+  puts("evaluated a");
+  auto_ast_walk(get_ident(&child_ctx, "a"), &child_ctx);
+  puts("");
+
+  ast_node result = auto_ast_walk(func_to_execute, &child_ctx);
+  hashmap_free(&child_ctx);
+  return result;
+  /* fprintf(stderr, "%d %s\n", children.child_ast[0].type, function_name); */
+  /* assert("nothing but builtins implemented yet" == false); */
 }
 
 // Can differentiate between a list or a literal
@@ -130,23 +207,3 @@ ast_node auto_ast_walk(ast_node ast, hashmap *ctx) {
   }
   return ast_walk(ast, ctx);
 }
-
-/* int main() { */
-/*   hashmap ctx = hashmap_init(fnv_string_hash, str_equals, 0.5, 0); */
-
-/*   string program = str_auto("(begin (var a 5) (var b 6) (+ a b))"); */
-/*   token_arr ta = lex(&program); */
-/*   str_free(&program); */
-
-/*   int cursor = 0; */
-/*   ast_node ast = parse(ta, &cursor); */
-/*   ast_print(ast); */
-/*   puts(""); */
-
-/*   ast_node result = ast_walk(ast, &ctx); */
-/*   ast_print(result); */
-
-/*   ast_node_free(&ast); */
-/*   hashmap_free(&ctx); */
-/*   ta_free(&ta); */
-/* } */

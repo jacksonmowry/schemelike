@@ -14,6 +14,9 @@ ast_node ast_node_init() {
 }
 
 void ast_node_free(ast_node *a) {
+  if (a->type == function_t) {
+    free(a->value.params);
+  }
   if (a->type == list_t) {
     for (int i = 0; i < a->child.size; i++) {
       ast_node_free(&a->child.child_ast[i]);

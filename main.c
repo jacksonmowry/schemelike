@@ -50,6 +50,13 @@ int main(int argc, char **argv) {
   ast_print(result);
   puts("");
 
+  for (int i = 0; i < ctx.capacity; i++) {
+    ast_node a = ctx.array[i].value;
+    if (a.type == function_t) {
+      free(a.value.params);
+    }
+  }
+
   ast_node_free(&ast);
   ta_free(&ta);
   hashmap_free(&ctx);

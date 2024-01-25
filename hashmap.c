@@ -285,6 +285,13 @@ void hashmap_print(hashmap *h, print_function key_print,
   }
 }
 
+hashmap hashmap_copy(hashmap *h) {
+  hashmap copy = *h;
+  copy.array = malloc(sizeof(pair) * copy.capacity);
+  memcpy(copy.array, h->array, sizeof(pair) * copy.capacity);
+  return copy;
+}
+
 /* int main() { */
 /*   hashmap h = hashmap_init(&fnv_string_hash, &str_equals, 0, 0); */
 
