@@ -12,5 +12,8 @@ $(TARGET): $(SRC)
 run: $(TARGET)
 	./$(TARGET) $(EXAMPLE_FILE)
 
+vm: vm.c
+	$(CC) $(CFLAGS) -o vm vm.c && ./vm
+
 clean:
-	rm -f $(TARGET)
+	rm -f $(TARGET) vm
