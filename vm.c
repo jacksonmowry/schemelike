@@ -6,9 +6,16 @@ typedef enum INST {
   SUB,
   DIV,
   MUL,
+  MOD,
   PUSH,
   POP,
+  SWAP,
   BEQ,
+  BNE,
+  BLT,
+  BGT,
+  BLE,
+  BGE,
   J,
   CALL,
   RET,
@@ -30,9 +37,9 @@ int64_t X = 0;
 int64_t Y = 0;
 
 int main() {
-  int64_t program[] = {LDYI,  122, LDX,  STY, STX,  BEQ, 16,   STX,
-                       PRINT, STX, PUSH, 1,   ADD,  LDX, J,    3,
-                       STX,   RET, PUSH, 11,  CALL, 0,   PRINT};
+  int64_t program[] = {LDYI, 12, LDX,   STY,  STX, BEQ,  16,  STX, PRINT, STX,
+                       PUSH, 1,  ADD,   LDX,  J,   3,    STX, RET, PUSH,  1,
+                       CALL, 0,  PRINT, PUSH, 1,   PUSH, 2,   SWAP};
   while (IP < sizeof(program) / sizeof(int64_t)) {
     int64_t op_code = program[IP];
     switch (op_code) {
@@ -64,6 +71,13 @@ int main() {
       IP += 1;
       break;
     }
+    case MOD: {
+      int64_t reg_a = STACK[--SP];
+      int64_t reg_b = STACK[--SP];
+      STACK[SP++] = reg_a % reg_b;
+      IP += 1;
+      break;
+    }
     case PUSH: {
       STACK[SP++] = program[IP + 1];
       IP += 2;
@@ -74,10 +88,68 @@ int main() {
       IP += 1;
       break;
     }
+    case SWAP: {
+      int64_t a = STACK[--SP];
+      int64_t b = STACK[--SP];
+      STACK[SP++] = a;
+      STACK[SP++] = b;
+      IP += 1;
+      break;
+    }
     case BEQ: {
       int64_t reg_a = STACK[--SP];
       int64_t reg_b = STACK[--SP];
       if (reg_a == reg_b) {
+        IP = program[IP + 1];
+      } else {
+        IP += 2;
+      }
+      break;
+    }
+    case BNE: {
+      int64_t reg_a = STACK[--SP];
+      int64_t reg_b = STACK[--SP];
+      if (reg_a != reg_b) {
+        IP = program[IP + 1];
+      } else {
+        IP += 2;
+      }
+      break;
+    }
+    case BLT: {
+      int64_t reg_a = STACK[--SP];
+      int64_t reg_b = STACK[--SP];
+      if (reg_a < reg_b) {
+        IP = program[IP + 1];
+      } else {
+        IP += 2;
+      }
+      break;
+    }
+    case BGT: {
+      int64_t reg_a = STACK[--SP];
+      int64_t reg_b = STACK[--SP];
+      if (reg_a > reg_b) {
+        IP = program[IP + 1];
+      } else {
+        IP += 2;
+      }
+      break;
+    }
+    case BLE: {
+      int64_t reg_a = STACK[--SP];
+      int64_t reg_b = STACK[--SP];
+      if (reg_a <= reg_b) {
+        IP = program[IP + 1];
+      } else {
+        IP += 2;
+      }
+      break;
+    }
+    case BGE: {
+      int64_t reg_a = STACK[--SP];
+      int64_t reg_b = STACK[--SP];
+      if (reg_a >= reg_b) {
         IP = program[IP + 1];
       } else {
         IP += 2;
@@ -135,13 +207,13 @@ int main() {
     }
     }
   }
-  for (int i = 0; i < SP; i++) {
+  for (uint64_t i = 0; i < SP; i++) {
     printf("%ld ", STACK[i]);
   }
   puts("");
-  printf("SP: %ld\n", SP);
+  printf("SP: %lu\n", SP);
   printf("IP: %lu\n", IP);
   printf("RA: %lu\n", RA);
-  printf("X: %lu\n", X);
-  printf("Y: %lu\n", Y);
+  printf("X: %ld\n", X);
+  printf("Y: %ld\n", Y);
 }
